@@ -1,22 +1,19 @@
-
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
-  ArrowUpRight,
   BarChart3,
   BrainCircuit,
   ChevronRight,
-  CircleHelp,
   Cpu,
   Gauge,
   LayoutDashboard,
   Settings,
   ShieldCheck,
   Sparkles,
-  Zap,
+  ClipboardCheck,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -38,16 +35,10 @@ export default function AppShell({
   const pathname = usePathname();
 
   const navigation = [
-    {
-      label: "Overview",
-      href: "/",
-      icon: LayoutDashboard,
-    },
-    {
-      label: "Benchmark Runner",
-      href: "/benchmarks",
-      icon: Activity,
-    },
+    { label: "Overview", href: "/", icon: LayoutDashboard },
+    { label: "Benchmark Runner", href: "/benchmarks", icon: Activity },
+    { label: "Model Comparison", href: "/compare", icon: BarChart3 },
+    { label: "Evaluations", href: "/evaluations", icon: ClipboardCheck },
   ];
 
   return (
@@ -55,10 +46,12 @@ export default function AppShell({
       className="glass-app min-h-screen text-white"
       onMouseMove={(event) => {
         const rect = event.currentTarget.getBoundingClientRect();
+
         event.currentTarget.style.setProperty(
           "--mx",
           `${event.clientX - rect.left}px`
         );
+
         event.currentTarget.style.setProperty(
           "--my",
           `${event.clientY - rect.top}px`
@@ -91,6 +84,7 @@ export default function AppShell({
         <nav className="sidebar-nav">
           {navigation.map((item) => {
             const Icon = item.icon;
+
             const active =
               item.href === "/"
                 ? pathname === "/"
@@ -115,7 +109,12 @@ export default function AppShell({
         </div>
 
         <nav className="sidebar-nav">
-          <Link href="/benchmarks" className="nav-link">
+          <Link
+            href="/benchmarks"
+            className={`nav-link ${
+              pathname === "/benchmarks" ? "nav-active" : ""
+            }`}
+          >
             <Cpu size={16} />
             <span>Model Registry</span>
             <span className="ml-auto text-[9px] text-slate-500">
@@ -123,14 +122,14 @@ export default function AppShell({
             </span>
           </Link>
 
-          <Link href="/benchmarks" className="nav-link">
-            <BarChart3 size={16} />
-            <span>Performance</span>
-          </Link>
-
-          <Link href="/benchmarks" className="nav-link">
+          <Link
+            href="/compare"
+            className={`nav-link ${
+              pathname === "/compare" ? "nav-active" : ""
+            }`}
+          >
             <Gauge size={16} />
-            <span>Evaluation</span>
+            <span>Performance</span>
           </Link>
         </nav>
 
@@ -147,10 +146,12 @@ export default function AppShell({
 
           <div className="profile">
             <div className="avatar">M</div>
+
             <div className="profile-copy">
               <strong>ModelBench AI</strong>
               <small>Developer workspace</small>
             </div>
+
             <Settings size={15} />
           </div>
         </div>
@@ -172,7 +173,9 @@ export default function AppShell({
           <div className="topbar-actions">
             <div className="connection-line">
               <span className="status-dot online" />
-              <span className="hidden sm:inline">Local environment</span>
+              <span className="hidden sm:inline">
+                Local environment
+              </span>
             </div>
 
             <span className="user-chip">
@@ -204,6 +207,7 @@ export default function AppShell({
             <span>
               ModelBench AI <i>·</i> LLM Benchmarking & Evaluation
             </span>
+
             <span>
               <ShieldCheck size={13} />
               Local development environment

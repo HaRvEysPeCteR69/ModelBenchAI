@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -6,8 +5,8 @@ import {
   Activity,
   AlertCircle,
   CheckCircle2,
-  Clock3,
   Cpu,
+  BrainCircuit,
   Play,
   RefreshCw,
   Server,
@@ -52,12 +51,33 @@ type BenchmarkResult = {
   created_at: string;
 };
 
+type EvaluationResult = {
+  evaluation_id: string;
+  prompt: string;
+  response: string;
+  judge_model: string;
+  overall_score: number;
+  scores: Record<string, number>;
+  reasoning: Record<string, string>;
+  strengths: string[];
+  weaknesses: string[];
+  overall_feedback: string;
+};
+
 type BenchmarkResponse = {
   run_count: number;
   successful_runs: number;
   failed_runs: number;
   results: BenchmarkResult[];
 };
+
+function newestFirst(results: BenchmarkResult[]) {
+  return [...results].sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() -
+      new Date(a.created_at).getTime()
+  );
+}
 
 export default function BenchmarksPage() {
   const [models, setModels] = useState<Model[]>([]);
@@ -72,6 +92,10 @@ export default function BenchmarksPage() {
   const [modelsLoading, setModelsLoading] = useState(true);
   const [resultsLoading, setResultsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [judgeModel, setJudgeModel] = useState("");
+  const [evaluatingId, setEvaluatingId] = useState<string | null>(null);
+  const [evaluationErrors, setEvaluationErrors] = useState<Record<string, string>>({});
+  const [evaluations, setEvaluations] = useState<Record<string, EvaluationResult>>({});
 
   const fetchModels = useCallback(async () => {
     setModelsLoading(true);
@@ -87,12 +111,13 @@ export default function BenchmarksPage() {
       const availableModels: Model[] = data.models ?? [];
 
       setModels(availableModels);
+      setJudgeModel((current) => {
+        if (current && availableModels.some((item) => item.id === current && item.provider !== "mock" && item.configured !== false)) return current;
+        return availableModels.find((item) => item.provider === "ollama" && item.configured !== false)?.id ?? "";
+      });
 
       setModel((current) => {
-        if (
-          current &&
-          availableModels.some((item) => item.id === current)
-        ) {
+        if (current && availableModels.some((item) => item.id === current)) {
           return current;
         }
 
@@ -128,7 +153,8 @@ export default function BenchmarksPage() {
       }
 
       const data = await response.json();
-      setResults(data.results ?? []);
+
+      setResults(newestFirst(data.results ?? []));
     } catch (err) {
       setError(
         err instanceof Error
@@ -139,6 +165,37 @@ export default function BenchmarksPage() {
       setResultsLoading(false);
     }
   }, []);
+
+  const runEvaluation = async (result: BenchmarkResult) => {
+    if (!result.success || !result.response || !judgeModel) return;
+    setEvaluatingId(result.id);
+    setEvaluationErrors((previous) => ({ ...previous, [result.id]: "" }));
+    try {
+      const response = await fetch(`${API_URL}/api/evaluations/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: result.prompt,
+          response: result.response,
+          judge_model: judgeModel,
+          reference_answer: null,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        const detail = data.detail;
+        throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail ?? "Evaluation failed"));
+      }
+      setEvaluations((previous) => ({ ...previous, [result.id]: data as EvaluationResult }));
+    } catch (err) {
+      setEvaluationErrors((previous) => ({
+        ...previous,
+        [result.id]: err instanceof Error ? err.message : "Evaluation failed",
+      }));
+    } finally {
+      setEvaluatingId(null);
+    }
+  };
 
   useEffect(() => {
     fetchModels();
@@ -176,20 +233,18 @@ export default function BenchmarksPage() {
         }
       );
 
-      const data: BenchmarkResponse = await response.json();
+      const data: BenchmarkResponse & { detail?: string } =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
-          "detail" in data
-            ? String(data.detail)
-            : "Benchmark execution failed."
+          data.detail ?? "Benchmark execution failed."
         );
       }
 
-      setResults((previous) => [
-        ...data.results,
-        ...previous,
-      ]);
+      setResults((previous) =>
+        newestFirst([...data.results, ...previous])
+      );
     } catch (err) {
       setError(
         err instanceof Error
@@ -218,31 +273,30 @@ export default function BenchmarksPage() {
         ) / successfulResults.length
       : 0;
 
-  const averageThroughput =
-    successfulResults.filter(
-      (item) => item.tokens_per_second != null
-    );
+  const throughputResults = successfulResults.filter(
+    (item) => item.tokens_per_second != null
+  );
 
   const throughputValue =
-    averageThroughput.length > 0
-      ? averageThroughput.reduce(
+    throughputResults.length > 0
+      ? throughputResults.reduce(
           (sum, item) => sum + (item.tokens_per_second ?? 0),
           0
-        ) / averageThroughput.length
+        ) / throughputResults.length
       : 0;
 
   const formatTime = (value: number | null) => {
-    if (value === null || value === undefined) return "N/A";
+    if (value == null) return "N/A";
     return `${value.toFixed(2)} ms`;
   };
 
   const formatTokens = (value: number | null) => {
-    if (value === null || value === undefined) return "N/A";
+    if (value == null) return "N/A";
     return value.toLocaleString();
   };
 
   const formatThroughput = (value: number | null) => {
-    if (value === null || value === undefined) return "N/A";
+    if (value == null) return "N/A";
     return `${value.toFixed(2)} tok/s`;
   };
 
@@ -263,9 +317,7 @@ export default function BenchmarksPage() {
           <RefreshCw
             size={14}
             className={
-              modelsLoading || resultsLoading
-                ? "animate-spin"
-                : ""
+              modelsLoading || resultsLoading ? "animate-spin" : ""
             }
           />
           Refresh data
@@ -278,8 +330,6 @@ export default function BenchmarksPage() {
           <span>{error}</span>
         </div>
       )}
-
-      {/* Benchmark configuration and overview */}
 
       <section className="grid items-stretch gap-4 lg:grid-cols-[1.25fr_0.85fr]">
         <div className="glass-panel p-6">
@@ -397,8 +447,6 @@ export default function BenchmarksPage() {
           </p>
         </div>
 
-        {/* Experiment overview */}
-
         <div className="flex flex-col gap-4">
           <div className="glass-panel p-5">
             <div className="panel-heading">
@@ -495,7 +543,7 @@ export default function BenchmarksPage() {
               <MiniMetric
                 label="Average throughput"
                 value={
-                  averageThroughput.length
+                  throughputResults.length
                     ? `${throughputValue.toFixed(1)} tok/s`
                     : "N/A"
                 }
@@ -505,15 +553,13 @@ export default function BenchmarksPage() {
         </div>
       </section>
 
-      {/* Execution history */}
-
       <section className="quick-section">
         <div className="quick-heading">
           <div>
             <p className="eyebrow">EXPERIMENT DATA</p>
             <h2>Execution history</h2>
             <p className="mt-1 text-xs text-slate-500">
-              Individual responses and performance measurements.
+              Newest benchmark executions appear first.
             </p>
           </div>
 
@@ -546,7 +592,7 @@ export default function BenchmarksPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {[...results].reverse().map((result) => (
+            {results.map((result) => (
               <article
                 key={result.id}
                 className="glass-panel overflow-hidden p-5 transition hover:border-violet-400/25"
@@ -569,7 +615,7 @@ export default function BenchmarksPage() {
 
                   <div className="flex items-center gap-3">
                     <span className="text-[10px] text-slate-500">
-                      {new Date(result.created_at).toLocaleString()}
+                      {new Date(result.created_at).toISOString().replace("T", " ").slice(0, 19)} UTC
                     </span>
 
                     <span
@@ -590,69 +636,57 @@ export default function BenchmarksPage() {
                 </div>
 
                 {result.success ? (
-                  <>
-                    <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
-                      <Metric
-                        label="Latency"
-                        value={formatTime(result.latency_ms)}
-                      />
+                  <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+                    <Metric
+                      label="Latency"
+                      value={formatTime(result.latency_ms)}
+                    />
 
-                      <Metric
-                        label="Throughput"
-                        value={formatThroughput(
-                          result.tokens_per_second
-                        )}
-                      />
+                    <Metric
+                      label="Throughput"
+                      value={formatThroughput(result.tokens_per_second)}
+                    />
 
-                      <Metric
-                        label="Input tokens"
-                        value={formatTokens(result.input_tokens)}
-                      />
+                    <Metric
+                      label="Input tokens"
+                      value={formatTokens(result.input_tokens)}
+                    />
 
-                      <Metric
-                        label="Output tokens"
-                        value={formatTokens(result.output_tokens)}
-                      />
+                    <Metric
+                      label="Output tokens"
+                      value={formatTokens(result.output_tokens)}
+                    />
 
-                      <Metric
-                        label="Generation time"
-                        value={formatTime(
-                          result.generation_duration_ms
-                        )}
-                      />
+                    <Metric
+                      label="Generation time"
+                      value={formatTime(result.generation_duration_ms)}
+                    />
 
-                      <Metric
-                        label="Model load"
-                        value={formatTime(result.load_duration_ms)}
-                      />
+                    <Metric
+                      label="Model load"
+                      value={formatTime(result.load_duration_ms)}
+                    />
 
-                      <Metric
-                        label="Prompt evaluation"
-                        value={formatTime(
-                          result.prompt_eval_duration_ms
-                        )}
-                      />
+                    <Metric
+                      label="Prompt evaluation"
+                      value={formatTime(result.prompt_eval_duration_ms)}
+                    />
 
-                      <Metric
-                        label="Total duration"
-                        value={formatTime(
-                          result.total_duration_ms
-                        )}
-                      />
+                    <Metric
+                      label="Total duration"
+                      value={formatTime(result.total_duration_ms)}
+                    />
 
-                      <Metric
-                        label="Output words"
-                        value={formatTokens(result.output_words)}
-                      />
+                    <Metric
+                      label="Output words"
+                      value={formatTokens(result.output_words)}
+                    />
 
-                      <Metric
-                        label="Time to first token"
-                        value={formatTime(
-                          result.time_to_first_token_ms
-                        )}
-                      />
-                    </div>
-                  </>
+                    <Metric
+                      label="Time to first token"
+                      value={formatTime(result.time_to_first_token_ms)}
+                    />
+                  </div>
                 ) : (
                   <div className="mb-4 rounded-xl border border-red-400/15 bg-red-400/5 p-4 text-xs text-red-300">
                     {result.error ?? "Unknown benchmark error."}
@@ -667,6 +701,66 @@ export default function BenchmarksPage() {
                   <p className="mt-2 whitespace-pre-wrap text-xs leading-6 text-slate-300">
                     {result.prompt}
                   </p>
+
+                  {result.success && result.response && (
+                    <div className="mt-4 rounded-xl border border-violet-400/15 bg-violet-400/[0.04] p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-sm font-medium text-violet-200">
+                          <BrainCircuit size={16} /> Response evaluation
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <select
+                            aria-label={`Judge model for run ${result.run_number}`}
+                            value={judgeModel}
+                            onChange={(event) => setJudgeModel(event.target.value)}
+                            className="rounded-lg border border-white/10 bg-[#151827] px-3 py-2 text-xs text-slate-200"
+                          >
+                            {!judgeModel && <option value="">No judge available</option>}
+                            {models.filter((item) => item.provider !== "mock" && item.configured !== false).map((item) => (
+                              <option key={item.id} value={item.id}>{item.name} ({item.provider})</option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => runEvaluation(result)}
+                            disabled={!judgeModel || evaluatingId !== null}
+                            className="secondary-button disabled:opacity-50"
+                          >
+                            {evaluatingId === result.id ? <RefreshCw size={14} className="animate-spin" /> : <BrainCircuit size={14} />}
+                            {evaluatingId === result.id ? "Evaluating..." : evaluations[result.id] ? "Re-evaluate" : "Evaluate response"}
+                          </button>
+                        </div>
+                      </div>
+                      {evaluationErrors[result.id] && (
+                        <p role="alert" className="mt-3 text-xs text-red-300">{evaluationErrors[result.id]}</p>
+                      )}
+                      {evaluations[result.id] && (
+                        <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl font-semibold text-violet-200">{evaluations[result.id].overall_score.toFixed(1)}<span className="text-xs text-slate-500"> / 100</span></span>
+                            <span className="text-xs text-slate-400">Judged by {evaluations[result.id].judge_model}</span>
+                          </div>
+                          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                            {Object.entries(evaluations[result.id].scores).map(([criterion, score]) => (
+                              <div key={criterion} className="rounded-lg border border-white/5 bg-black/20 p-3">
+                                <p className="text-[10px] capitalize text-slate-400">{criterion.replace(/_/g, " ")}</p>
+                                <p className="mt-1 text-sm font-semibold text-slate-100">{score} / 5</p>
+                                <p className="mt-2 text-[11px] leading-5 text-slate-400">{evaluations[result.id].reasoning?.[criterion]}</p>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-xs leading-6 text-slate-300">{evaluations[result.id].overall_feedback}</p>
+                          {evaluations[result.id].strengths?.length > 0 && (
+                            <div><p className="text-xs font-medium text-emerald-300">Strengths</p><ul className="mt-1 list-inside list-disc text-xs text-slate-400">{evaluations[result.id].strengths.map((item, index) => <li key={index}>{item}</li>)}</ul></div>
+                          )}
+                          {evaluations[result.id].weaknesses?.length > 0 && (
+                            <div><p className="text-xs font-medium text-amber-300">Weaknesses</p><ul className="mt-1 list-inside list-disc text-xs text-slate-400">{evaluations[result.id].weaknesses.map((item, index) => <li key={index}>{item}</li>)}</ul></div>
+                          )}
+                          <p className="text-[10px] text-amber-300/80">LLM judge scores are subjective and may be inaccurate. Validate important conclusions independently.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {result.response && (
                     <details className="mt-4">
