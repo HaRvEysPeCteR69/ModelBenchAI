@@ -387,7 +387,7 @@ Contributions, bug reports, and suggestions are welcome.
 3. Implement and test your changes.
 4. Submit a pull request with a clear description.
 
----
+----
 
 ## License
 
