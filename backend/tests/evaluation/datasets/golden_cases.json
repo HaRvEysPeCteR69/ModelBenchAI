@@ -1,0 +1,58 @@
+
+[
+  {
+    "id": "tcp_001",
+    "category": "correct",
+    "prompt": "Explain the difference between TCP and UDP in three sentences.",
+    "response": "TCP is connection-oriented and provides reliable, ordered delivery using acknowledgements and retransmissions. UDP is connectionless and does not guarantee delivery or ordering. TCP generally has more protocol overhead, while UDP is often preferred for latency-sensitive applications.",
+    "reference_answer": "TCP is connection-oriented and provides reliable, ordered delivery. UDP is connectionless and does not guarantee delivery or ordering.",
+    "expected_correctness": 5,
+    "expected_min_score": 80
+  },
+  {
+    "id": "tcp_002",
+    "category": "incorrect",
+    "prompt": "Explain the difference between TCP and UDP in three sentences.",
+    "response": "TCP is connectionless and does not guarantee delivery. UDP establishes connections and guarantees reliable, ordered delivery. TCP is always faster than UDP.",
+    "reference_answer": "TCP is connection-oriented and provides reliable, ordered delivery. UDP is connectionless and does not guarantee delivery or ordering.",
+    "expected_correctness": 1,
+    "expected_max_score": 50
+  },
+  {
+    "id": "tcp_003",
+    "category": "partially_correct",
+    "prompt": "Explain the difference between TCP and UDP.",
+    "response": "TCP is connection-oriented. UDP is connectionless.",
+    "reference_answer": "TCP is connection-oriented and provides reliable, ordered delivery. UDP is connectionless and does not guarantee delivery or ordering.",
+    "expected_correctness": 4,
+    "expected_min_score": 55,
+    "expected_max_score": 85
+  },
+  {
+    "id": "python_001",
+    "category": "correct",
+    "prompt": "What is the difference between a Python list and tuple?",
+    "response": "A list is mutable, meaning its elements can be changed after creation. A tuple is immutable, meaning its elements cannot be reassigned after creation. Lists use square brackets, while tuples generally use parentheses.",
+    "reference_answer": "Lists are mutable sequences, while tuples are immutable sequences.",
+    "expected_correctness": 5,
+    "expected_min_score": 80
+  },
+  {
+    "id": "python_002",
+    "category": "incorrect",
+    "prompt": "What is the difference between a Python list and tuple?",
+    "response": "Python lists are immutable, while tuples are mutable. Both use curly braces.",
+    "reference_answer": "Lists are mutable sequences, while tuples are immutable sequences.",
+    "expected_correctness": 1,
+    "expected_max_score": 50
+  },
+  {
+    "id": "instruction_001",
+    "category": "instruction_following",
+    "prompt": "Explain recursion in exactly two bullet points.",
+    "response": "Recursion is a programming technique in which a function calls itself. It usually requires a base case to terminate.",
+    "reference_answer": "Recursion involves a function calling itself. A base case prevents infinite recursion.",
+    "expected_correctness": 5,
+    "expected_max_score": 85
+  }
+]

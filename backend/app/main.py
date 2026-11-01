@@ -286,12 +286,69 @@ async def health_check():
 
 
 @app.get("/api/models")
-async def list_models():
-    models = await registry.list_all_models()
+async def list_models(
+    provider: Optional[str] = None,
+    capability: Optional[str] = None,
+):
+    """
+    List discovered models.
+
+    Optional filters:
+    - provider: ollama, mock
+    - capability: general, coding, reasoning, vision, embeddings
+    """
+
+    try:
+        models = await registry.list_all_models(
+            provider_filter=provider,
+            capability_filter=capability,
+        )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
 
     return {
         "models": models,
         "count": len(models),
+        "filters": {
+            "provider": provider,
+            "capability": capability,
+        },
+    }
+
+
+# Keep this route BEFORE /api/models/{model_id}.
+# Otherwise, "summary" could be interpreted as a model ID.
+
+@app.get("/api/models/summary")
+async def get_model_registry_summary():
+    """
+    Return registry statistics and model metadata.
+    """
+
+    return await registry.get_registry_summary()
+
+
+@app.get("/api/models/{model_id}")
+async def get_model_details(model_id: str):
+    """
+    Retrieve metadata for one installed model.
+    """
+
+    try:
+        model = await registry.get_model(model_id)
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        )
+
+    return {
+        "model": model,
     }
 
 

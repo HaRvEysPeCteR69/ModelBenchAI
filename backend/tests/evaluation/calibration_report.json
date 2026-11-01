@@ -1,0 +1,114 @@
+{
+  "judge_model": "qwen2.5:3b",
+  "total_cases": 6,
+  "successful_cases": 5,
+  "results": [
+    {
+      "id": "tcp_001",
+      "category": "correct",
+      "success": false,
+      "error": "HTTP 422: {\"detail\":\"Judge returned malformed JSON.\"}"
+    },
+    {
+      "id": "tcp_002",
+      "category": "incorrect",
+      "success": true,
+      "overall_score": 60.0,
+      "correctness": 3.0,
+      "scores": {
+        "correctness": 3.0,
+        "relevance": 3.0,
+        "instruction_following": 3.0,
+        "completeness": 3.0,
+        "clarity": 3.0
+      },
+      "judge_latency_ms": 8627.054,
+      "elapsed_ms": 8660.48,
+      "checks": {
+        "correctness": false,
+        "maximum_score": false
+      }
+    },
+    {
+      "id": "tcp_003",
+      "category": "partially_correct",
+      "success": true,
+      "overall_score": 60.0,
+      "correctness": 3.0,
+      "scores": {
+        "correctness": 3.0,
+        "relevance": 3.0,
+        "instruction_following": 3.0,
+        "completeness": 3.0,
+        "clarity": 3.0
+      },
+      "judge_latency_ms": 8326.426,
+      "elapsed_ms": 8356.06,
+      "checks": {
+        "correctness": false,
+        "minimum_score": true,
+        "maximum_score": true
+      }
+    },
+    {
+      "id": "python_001",
+      "category": "correct",
+      "success": true,
+      "overall_score": 60.0,
+      "correctness": 3.0,
+      "scores": {
+        "correctness": 3.0,
+        "relevance": 3.0,
+        "instruction_following": 3.0,
+        "completeness": 3.0,
+        "clarity": 3.0
+      },
+      "judge_latency_ms": 8030.222,
+      "elapsed_ms": 8055.84,
+      "checks": {
+        "correctness": false,
+        "minimum_score": false
+      }
+    },
+    {
+      "id": "python_002",
+      "category": "incorrect",
+      "success": true,
+      "overall_score": 60.0,
+      "correctness": 3.0,
+      "scores": {
+        "correctness": 3.0,
+        "relevance": 3.0,
+        "instruction_following": 3.0,
+        "completeness": 3.0,
+        "clarity": 3.0
+      },
+      "judge_latency_ms": 8817.482,
+      "elapsed_ms": 8844.31,
+      "checks": {
+        "correctness": false,
+        "maximum_score": false
+      }
+    },
+    {
+      "id": "instruction_001",
+      "category": "instruction_following",
+      "success": true,
+      "overall_score": 60.0,
+      "correctness": 3.0,
+      "scores": {
+        "correctness": 3.0,
+        "relevance": 3.0,
+        "instruction_following": 3.0,
+        "completeness": 3.0,
+        "clarity": 3.0
+      },
+      "judge_latency_ms": 8034.609,
+      "elapsed_ms": 8060.69,
+      "checks": {
+        "correctness": false,
+        "maximum_score": true
+      }
+    }
+  ]
+}
