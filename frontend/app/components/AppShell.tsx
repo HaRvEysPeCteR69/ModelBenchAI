@@ -36,6 +36,7 @@ export default function AppShell({
 
   const navigation = [
     { label: "Overview", href: "/", icon: LayoutDashboard },
+    { label: "Model Registry", href: "/models", icon: Cpu },
     { label: "Benchmark Runner", href: "/benchmarks", icon: Activity },
     { label: "Model Comparison", href: "/compare", icon: BarChart3 },
     { label: "Evaluations", href: "/evaluations", icon: ClipboardCheck },
@@ -104,35 +105,6 @@ export default function AppShell({
           })}
         </nav>
 
-        <div className="sidebar-label eyebrow settings-label">
-          PLATFORM
-        </div>
-
-        <nav className="sidebar-nav">
-          <Link
-            href="/benchmarks"
-            className={`nav-link ${
-              pathname === "/benchmarks" ? "nav-active" : ""
-            }`}
-          >
-            <Cpu size={16} />
-            <span>Model Registry</span>
-            <span className="ml-auto text-[9px] text-slate-500">
-              LIVE
-            </span>
-          </Link>
-
-          <Link
-            href="/compare"
-            className={`nav-link ${
-              pathname === "/compare" ? "nav-active" : ""
-            }`}
-          >
-            <Gauge size={16} />
-            <span>Performance</span>
-          </Link>
-        </nav>
-
         <div className="sidebar-bottom">
           <div className="sidebar-label eyebrow">SYSTEM</div>
 
@@ -173,9 +145,7 @@ export default function AppShell({
           <div className="topbar-actions">
             <div className="connection-line">
               <span className="status-dot online" />
-              <span className="hidden sm:inline">
-                Local environment
-              </span>
+              <span className="hidden sm:inline">Local environment</span>
             </div>
 
             <span className="user-chip">
